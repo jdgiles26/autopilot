@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 export const SYSTEM_PROMPT = `You are Autopilot AI — an expert AI workflow automation assistant and code generator. You help users design, build, and optimize intelligent automation workflows.
 
 Your capabilities:
@@ -15,22 +17,26 @@ When asked to execute code, use the execute_code tool.
 
 Focus areas: AI/ML pipelines, data engineering, DevOps automation, business process automation.`
 
+export const plannerNodeSchema = z.object({
+  type: z.enum(['trigger', 'ai-agent', 'code-exec', 'condition', 'notification', 'transform']),
+  label: z.string(),
+  description: z.string(),
+})
+
+export const plannerOutputSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  nodes: z.array(plannerNodeSchema).min(1),
+  steps: z.array(z.string()).min(1),
+})
+
 export interface PlannerInput {
   goal: string
   constraints?: string[]
   preferredTech?: string[]
 }
 
-export interface PlannerOutput {
-  name: string
-  description: string
-  nodes: Array<{
-    type: string
-    label: string
-    description: string
-  }>
-  steps: string[]
-}
+export type PlannerOutput = z.infer<typeof plannerOutputSchema>
 
 export function buildPlannerPrompt(input: PlannerInput): string {
   return `Generate a detailed workflow plan for the following goal:
@@ -46,25 +52,4 @@ Return a JSON object with:
 - steps: array of implementation step strings
 
 Keep it practical and production-ready.`
-}
-
-export function getMockPlannerResponse(goal: string): PlannerOutput {
-  return {
-    name: `AI ${goal.split(' ').slice(0, 3).join(' ')} Workflow`,
-    description: `Automated workflow for: ${goal}`,
-    nodes: [
-      { type: 'trigger', label: 'Input Trigger', description: 'Initiates the workflow' },
-      { type: 'ai-agent', label: 'AI Processor', description: 'Analyzes and processes input with LLM' },
-      { type: 'condition', label: 'Quality Check', description: 'Validates output quality' },
-      { type: 'code-exec', label: 'Transform', description: 'Post-processes results' },
-      { type: 'notification', label: 'Deliver Results', description: 'Sends results to destination' },
-    ],
-    steps: [
-      'Set up HTTP trigger endpoint',
-      'Configure AI agent with GPT-4o',
-      'Define quality threshold conditions',
-      'Write transformation code',
-      'Configure delivery notification',
-    ],
-  }
 }

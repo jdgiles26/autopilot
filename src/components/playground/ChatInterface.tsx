@@ -58,7 +58,7 @@ export function ChatInterface() {
             <h3 className="text-sm font-semibold text-slate-100">Autopilot AI</h3>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] text-slate-500">GPT-4o • Ready</span>
+              <span className="text-[10px] text-slate-500">Ollama • Local</span>
             </div>
           </div>
         </div>

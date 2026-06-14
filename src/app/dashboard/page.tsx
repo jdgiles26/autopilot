@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AppShell } from '@/components/layout/AppShell'
 import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
@@ -11,6 +11,7 @@ import { TypewriterText } from '@/components/animations/TypewriterText'
 import { GlowPulse } from '@/components/animations/GlowPulse'
 import { Zap, ArrowRight, Plus } from 'lucide-react'
 import Link from 'next/link'
+import type { Workflow } from '@/types'
 
 const TAGLINES = [
   'orchestrating complex software life-cycles',
@@ -19,85 +20,44 @@ const TAGLINES = [
   'generating production-ready pipelines',
 ]
 
-const RECENT_WORKFLOWS = [
-  {
-    id: 'wf-001',
-    name: 'Data Ingestion Pipeline',
-    description: 'Real-time ETL pipeline with AI-powered data validation',
-    status: 'active' as const,
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
-    lastRun: new Date(Date.now() - 900000).toISOString(),
-    runCount: 248,
-    successRate: 98.4,
-    avgDuration: 3200,
-    tags: ['data', 'etl', 'ai'],
-  },
-  {
-    id: 'wf-002',
-    name: 'LLM Code Review Bot',
-    description: 'Automated PR review using GPT-4o with custom rule engine',
-    status: 'active' as const,
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 7200000).toISOString(),
-    lastRun: new Date(Date.now() - 1800000).toISOString(),
-    runCount: 134,
-    successRate: 99.2,
-    avgDuration: 8100,
-    tags: ['devops', 'llm', 'github'],
-  },
-  {
-    id: 'wf-003',
-    name: 'Customer Onboarding Flow',
-    description: 'Multi-step onboarding with email, CRM sync, and AI personalization',
-    status: 'paused' as const,
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 12).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    lastRun: new Date(Date.now() - 86400000).toISOString(),
-    runCount: 89,
-    successRate: 94.7,
-    avgDuration: 12400,
-    tags: ['crm', 'email', 'automation'],
-  },
-  {
-    id: 'wf-004',
-    name: 'Anomaly Detection Sentinel',
-    description: 'ML-powered anomaly detection on infrastructure metrics',
-    status: 'active' as const,
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
-    updatedAt: new Date(Date.now() - 10800000).toISOString(),
-    lastRun: new Date(Date.now() - 300000).toISOString(),
-    runCount: 1204,
-    successRate: 99.8,
-    avgDuration: 450,
-    tags: ['ml', 'monitoring', 'infra'],
-  },
-  {
-    id: 'wf-005',
-    name: 'Document Intelligence Extractor',
-    description: 'Vision AI pipeline for extracting structured data from documents',
-    status: 'completed' as const,
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    lastRun: new Date(Date.now() - 86400000 * 3).toISOString(),
-    runCount: 512,
-    successRate: 96.3,
-    avgDuration: 5800,
-    tags: ['vision', 'ocr', 'documents'],
-  },
-]
-
 export default function DashboardPage() {
+  const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadWorkflows() {
+      try {
+        const response = await fetch('/api/workflows', { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Failed to load workflows (${response.status})`)
+        }
+
+        const data = await response.json() as { workflows?: Workflow[] }
+        if (isMounted) {
+          setWorkflows(data.workflows ?? [])
+        }
+      } catch {
+        if (isMounted) {
+          setWorkflows([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadWorkflows()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const recentWorkflows = workflows.slice(0, 5)
+
   return (
     <AppShell
       title="Dashboard"
@@ -112,7 +72,6 @@ export default function DashboardPage() {
           className="relative rounded-2xl overflow-hidden border border-[rgba(99,102,241,0.2)] bg-[#0f0f1a] p-8"
           style={{ boxShadow: '0 0 60px rgba(99,102,241,0.08), 0 0 120px rgba(6,182,212,0.04)' }}
         >
-          {/* Glow accents */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
           <div className="absolute -top-20 left-1/4 w-80 h-80 rounded-full bg-indigo-600/5 blur-3xl pointer-events-none" />
           <div className="absolute -top-20 right-1/4 w-60 h-60 rounded-full bg-cyan-500/5 blur-3xl pointer-events-none" />
@@ -150,7 +109,6 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Metrics */}
         <section>
           <motion.h2
             initial={{ opacity: 0 }}
@@ -160,12 +118,10 @@ export default function DashboardPage() {
           >
             Platform Overview
           </motion.h2>
-          <MetricsGrid />
+          <MetricsGrid workflows={workflows} />
         </section>
 
-        {/* Main content grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Recent Workflows */}
           <div className="xl:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
@@ -178,10 +134,20 @@ export default function DashboardPage() {
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-            <WorkflowList workflows={RECENT_WORKFLOWS} compact />
+
+            {isLoading ? (
+              <div className="rounded-xl border border-[rgba(99,102,241,0.15)] bg-[#0f0f1a] px-4 py-6 text-sm text-slate-500">
+                Loading workflows...
+              </div>
+            ) : recentWorkflows.length > 0 ? (
+              <WorkflowList workflows={recentWorkflows} compact />
+            ) : (
+              <div className="rounded-xl border border-[rgba(99,102,241,0.15)] bg-[#0f0f1a] px-4 py-6 text-sm text-slate-500">
+                No workflows yet. Create one from the Workflows page or the AI playground.
+              </div>
+            )}
           </div>
 
-          {/* Right sidebar */}
           <div className="space-y-6">
             <div>
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">

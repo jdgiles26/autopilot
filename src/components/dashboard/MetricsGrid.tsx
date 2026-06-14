@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { Workflow } from '@/types'
 
 interface Metric {
   label: string
@@ -15,6 +16,10 @@ interface Metric {
   color: string
   glowColor: string
   format?: (n: number) => string
+}
+
+interface MetricsGridProps {
+  workflows?: Workflow[]
 }
 
 function useCountUp(target: number, duration = 2000) {
@@ -124,13 +129,20 @@ function MetricCard({ metric, index }: MetricCardProps) {
   )
 }
 
-export function MetricsGrid() {
-  const metrics: Metric[] = [
+function buildMetrics(workflows: Workflow[] = []): Metric[] {
+  const activeWorkflows = workflows.filter(workflow => workflow.status === 'active').length
+  const completedRuns = workflows.reduce((sum, workflow) => sum + workflow.runCount, 0)
+  const averageSuccessRate = workflows.length > 0
+    ? workflows.reduce((sum, workflow) => sum + workflow.successRate, 0) / workflows.length
+    : 0
+  const averageExecutionSeconds = workflows.length > 0
+    ? workflows.reduce((sum, workflow) => sum + workflow.avgDuration, 0) / workflows.length / 1000
+    : 0
+
+  return [
     {
       label: 'Active Workflows',
-      value: 24,
-      change: 12,
-      changeType: 'increase',
+      value: activeWorkflows,
       color: '#818cf8',
       glowColor: 'rgba(99,102,241,0.15)',
       icon: (
@@ -141,9 +153,7 @@ export function MetricsGrid() {
     },
     {
       label: 'Tasks Completed',
-      value: 12847,
-      change: 8.4,
-      changeType: 'increase',
+      value: completedRuns,
       color: '#34d399',
       glowColor: 'rgba(16,185,129,0.15)',
       format: (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : n.toString(),
@@ -155,10 +165,8 @@ export function MetricsGrid() {
     },
     {
       label: 'Success Rate',
-      value: 97,
+      value: Math.round(averageSuccessRate),
       unit: '%',
-      change: 2.1,
-      changeType: 'increase',
       color: '#22d3ee',
       glowColor: 'rgba(6,182,212,0.15)',
       icon: (
@@ -169,10 +177,8 @@ export function MetricsGrid() {
     },
     {
       label: 'Avg Execution',
-      value: 3,
-      unit: '.2s',
-      change: 0.8,
-      changeType: 'decrease',
+      value: Math.round(averageExecutionSeconds),
+      unit: 's',
       color: '#fbbf24',
       glowColor: 'rgba(245,158,11,0.15)',
       icon: (
@@ -182,6 +188,10 @@ export function MetricsGrid() {
       ),
     },
   ]
+}
+
+export function MetricsGrid({ workflows = [] }: MetricsGridProps) {
+  const metrics = buildMetrics(workflows)
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

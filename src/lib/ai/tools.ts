@@ -1,6 +1,8 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import type { WorkflowNode, WorkflowEdge } from '@/types'
+import { executeCodeSnippet } from '@/lib/execution/code-runner'
+import { searchLocalDocs } from '@/lib/docs/search'
 
 export const generateWorkflowTool = tool({
   description: 'Generate a workflow DAG based on a goal description',
@@ -38,21 +40,17 @@ export const executeCodeTool = tool({
   description: 'Execute a code snippet and return the output',
   parameters: z.object({
     code: z.string().describe('The code to execute'),
-    language: z.enum(['python', 'javascript']).describe('The programming language'),
+    language: z.enum(['python', 'javascript', 'typescript', 'bash']).describe('The programming language'),
   }),
   execute: async ({ code, language }) => {
-    // Mock execution
-    const mockOutputs: Record<string, string> = {
-      python: `Python 3.11.4
->>> ${code.split('\n')[0]}
-Hello, World!
-Process finished with exit code 0`,
-      javascript: `Node.js v20.10.0
-> ${code.split('\n')[0]}
-'Hello, World!'
-undefined`,
+    const result = await executeCodeSnippet({ code, language })
+    const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim()
+
+    return {
+      output: output || 'Execution complete',
+      exitCode: result.exitCode,
+      durationMs: result.durationMs,
     }
-    return { output: mockOutputs[language] ?? 'Execution complete', exitCode: 0 }
   },
 })
 
@@ -62,11 +60,7 @@ export const searchDocsTool = tool({
     query: z.string().describe('The search query'),
   }),
   execute: async ({ query }) => {
-    return {
-      results: [
-        { title: 'Getting Started with Autopilot', url: '/docs/getting-started', snippet: `Learn how to build your first workflow with ${query}...` },
-        { title: 'AI Agent Configuration', url: '/docs/agents', snippet: 'Configure AI agents for your workflows...' },
-      ],
-    }
+    const results = await searchLocalDocs(query)
+    return { results }
   },
 })
