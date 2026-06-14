@@ -26,6 +26,11 @@ export default function WorkflowsPage() {
   useEffect(() => {
     let isMounted = true
 
+    /**
+     * Fetches workflows from the API and updates state.
+     *
+     * Populates the workflows state with the fetched data on success, or with an empty array on failure. Always sets the loading state to false when complete.
+     */
     async function loadWorkflows() {
       try {
         const response = await fetch('/api/workflows', { cache: 'no-store' })

@@ -9,6 +9,11 @@ const ollamaProvider = createOpenAI({
   baseURL: OLLAMA_BASE_URL,
 })
 
+/**
+ * Retrieves an Ollama model instance for the specified model ID.
+ *
+ * @returns A model instance from the Ollama provider
+ */
 export function getOllamaModel(modelId: string = OLLAMA_MODEL) {
   return ollamaProvider(modelId)
 }

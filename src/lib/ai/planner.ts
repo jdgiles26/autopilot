@@ -38,6 +38,11 @@ export interface PlannerInput {
 
 export type PlannerOutput = z.infer<typeof plannerOutputSchema>
 
+/**
+ * Constructs a prompt string for the AI workflow planner.
+ *
+ * @returns A prompt string that requests a detailed workflow plan for the given goal.
+ */
 export function buildPlannerPrompt(input: PlannerInput): string {
   return `Generate a detailed workflow plan for the following goal:
 

@@ -22,6 +22,12 @@ interface MetricsGridProps {
   workflows?: Workflow[]
 }
 
+/**
+ * Animates a count from zero to a target value using cubic easing.
+ *
+ * @param duration - Animation duration in milliseconds
+ * @returns The current animated count value
+ */
 function useCountUp(target: number, duration = 2000) {
   const [count, setCount] = useState(0)
   const frameRef = useRef<number>(0)
@@ -53,6 +59,12 @@ interface MetricCardProps {
   index: number
 }
 
+/**
+ * Renders an animated metric card displaying a value, icon, label, and optional trend indicator.
+ *
+ * @param metric - The metric configuration object
+ * @param index - The card's position in the grid, used to stagger entrance animation timing
+ */
 function MetricCard({ metric, index }: MetricCardProps) {
   const count = useCountUp(metric.value, 2000 + index * 200)
   const displayValue = metric.format ? metric.format(count) : count.toString()
@@ -129,6 +141,14 @@ function MetricCard({ metric, index }: MetricCardProps) {
   )
 }
 
+/**
+ * Creates metric card definitions computed from a list of workflows.
+ *
+ * Derives four metrics: active workflow count, total completed runs, average success rate, and average execution time.
+ *
+ * @param workflows - Workflows to compute metrics from.
+ * @returns An array of four metric objects with computed values and styling configuration.
+ */
 function buildMetrics(workflows: Workflow[] = []): Metric[] {
   const activeWorkflows = workflows.filter(workflow => workflow.status === 'active').length
   const completedRuns = workflows.reduce((sum, workflow) => sum + workflow.runCount, 0)
@@ -190,6 +210,12 @@ function buildMetrics(workflows: Workflow[] = []): Metric[] {
   ]
 }
 
+/**
+ * Renders a responsive grid of metric cards derived from workflow data.
+ *
+ * @param workflows - Array of workflows from which to compute and display metrics.
+ * @returns A responsive grid displaying metric cards with animated counters.
+ */
 export function MetricsGrid({ workflows = [] }: MetricsGridProps) {
   const metrics = buildMetrics(workflows)
 

@@ -2,10 +2,24 @@ import { executeCodeSnippet, type ExecutionLanguage, type ExecutionLine } from '
 
 export const runtime = 'nodejs'
 
+/**
+ * Formats an execution line as a Server-Sent Events (SSE) message.
+ *
+ * @param line - The execution line to encode
+ * @returns The execution line serialized as an SSE event string
+ */
 function encodeLine(line: ExecutionLine) {
   return `data: ${JSON.stringify(line)}\n\n`
 }
 
+/**
+ * Executes code snippets and streams execution results.
+ *
+ * Accepts code and language in the request body and streams execution progress
+ * and final status via Server-Sent Events.
+ *
+ * @returns A Response streaming execution results as Server-Sent Events.
+ */
 export async function POST(req: Request) {
   const body = await req.json() as { code: string; language?: ExecutionLanguage }
   const language = body.language ?? 'python'

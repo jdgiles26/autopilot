@@ -30,6 +30,11 @@ const EXAMPLES = [
   'Generate weekly reports from multiple data sources',
 ]
 
+/**
+ * Renders a modal for creating and configuring workflows with AI planning assistance.
+ *
+ * Users describe their automation goal, generate workflow structure via AI, and optionally customize the workflow name before creation.
+ */
 export function CreateWorkflowModal({ open, onClose, onCreated }: CreateWorkflowModalProps) {
   const [name, setName] = useState('')
   const [goal, setGoal] = useState('')

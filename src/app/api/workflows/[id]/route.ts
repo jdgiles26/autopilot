@@ -7,6 +7,11 @@ interface RouteParams {
   }>
 }
 
+/**
+ * Fetches and returns a workflow by its ID.
+ *
+ * @returns A JSON response containing the workflow, or a 404 error if the workflow is not found.
+ */
 export async function GET(_: Request, { params }: RouteParams) {
   const { id } = await params
   const workflow = await getWorkflowById(id)

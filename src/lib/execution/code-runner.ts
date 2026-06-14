@@ -31,6 +31,13 @@ export interface ExecuteCodeResult {
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
+/**
+ * Processes a text chunk and emits complete lines via a callback, buffering incomplete lines.
+ *
+ * @param chunk - Text to append and process
+ * @param buffer - Object holding accumulated text (modified in place)
+ * @param onLine - Optional callback invoked with each complete line
+ */
 function flushLines(
   chunk: string,
   buffer: { value: string },
@@ -45,6 +52,11 @@ function flushLines(
   }
 }
 
+/**
+ * Maps an execution language to its runtime environment configuration.
+ *
+ * @returns An object with the runtime name, executable command, and file extension for the language.
+ */
 function getRuntimeDetails(language: ExecutionLanguage) {
   switch (language) {
     case 'javascript':
@@ -74,6 +86,14 @@ function getRuntimeDetails(language: ExecutionLanguage) {
   }
 }
 
+/**
+ * Writes source code to an executable file, transpiling TypeScript to CommonJS JavaScript if necessary.
+ *
+ * @param language - The programming language of the code
+ * @param code - The source code to write
+ * @param directory - The directory where the file will be created
+ * @returns The absolute path to the created source file
+ */
 async function writeExecutableSource(language: ExecutionLanguage, code: string, directory: string) {
   const { extension } = getRuntimeDetails(language)
   const filePath = join(directory, `snippet${extension}`)
@@ -95,6 +115,13 @@ async function writeExecutableSource(language: ExecutionLanguage, code: string, 
   return filePath
 }
 
+/**
+ * Executes a code snippet in the specified language and captures its output.
+ *
+ * Terminates the process if execution exceeds the specified timeout duration.
+ *
+ * @returns The execution result, including stdout, stderr, exit code, duration, command, and runtime.
+ */
 export async function executeCodeSnippet({
   code,
   language,
