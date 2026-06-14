@@ -1,105 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AppShell } from '@/components/layout/AppShell'
 import { WorkflowList } from '@/components/workflow/WorkflowList'
 import { CreateWorkflowModal } from '@/components/workflow/CreateWorkflowModal'
 import type { Workflow } from '@/types'
 import { Plus, Search, Filter, Zap, CheckCircle2, PauseCircle, XCircle } from 'lucide-react'
-
-const WORKFLOWS: Workflow[] = [
-  {
-    id: 'wf-001',
-    name: 'Data Ingestion Pipeline',
-    description: 'Real-time ETL pipeline with AI-powered data validation and schema inference',
-    status: 'active',
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
-    lastRun: new Date(Date.now() - 900000).toISOString(),
-    runCount: 248,
-    successRate: 98.4,
-    avgDuration: 3200,
-    tags: ['data', 'etl', 'ai'],
-  },
-  {
-    id: 'wf-002',
-    name: 'LLM Code Review Bot',
-    description: 'Automated PR review using GPT-4o with custom style enforcement rules',
-    status: 'active',
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 7200000).toISOString(),
-    lastRun: new Date(Date.now() - 1800000).toISOString(),
-    runCount: 134,
-    successRate: 99.2,
-    avgDuration: 8100,
-    tags: ['devops', 'llm', 'github'],
-  },
-  {
-    id: 'wf-003',
-    name: 'Customer Onboarding Flow',
-    description: 'Multi-step onboarding with email sequences, CRM sync, and AI personalization',
-    status: 'paused',
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 12).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    lastRun: new Date(Date.now() - 86400000).toISOString(),
-    runCount: 89,
-    successRate: 94.7,
-    avgDuration: 12400,
-    tags: ['crm', 'email', 'automation'],
-  },
-  {
-    id: 'wf-004',
-    name: 'Anomaly Detection Sentinel',
-    description: 'ML-powered anomaly detection and alerting on infrastructure metrics',
-    status: 'active',
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
-    updatedAt: new Date(Date.now() - 10800000).toISOString(),
-    lastRun: new Date(Date.now() - 300000).toISOString(),
-    runCount: 1204,
-    successRate: 99.8,
-    avgDuration: 450,
-    tags: ['ml', 'monitoring', 'infra'],
-  },
-  {
-    id: 'wf-005',
-    name: 'Document Intelligence Extractor',
-    description: 'Vision AI pipeline for extracting structured data from unstructured documents',
-    status: 'completed',
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    lastRun: new Date(Date.now() - 86400000 * 3).toISOString(),
-    runCount: 512,
-    successRate: 96.3,
-    avgDuration: 5800,
-    tags: ['vision', 'ocr', 'documents'],
-  },
-  {
-    id: 'wf-006',
-    name: 'Social Media Intelligence',
-    description: 'Sentiment analysis and trend detection across social platforms',
-    status: 'failed',
-    nodes: [],
-    edges: [],
-    createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    lastRun: new Date(Date.now() - 3600000 * 2).toISOString(),
-    runCount: 67,
-    successRate: 78.3,
-    avgDuration: 22000,
-    tags: ['nlp', 'social', 'analytics'],
-  },
-]
 
 const STATUS_FILTERS = [
   { label: 'All', value: 'all', icon: Filter },
@@ -113,21 +20,73 @@ export default function WorkflowsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showCreate, setShowCreate] = useState(false)
-  const [workflows, setWorkflows] = useState<Workflow[]>(WORKFLOWS)
+  const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const filtered = workflows.filter(wf => {
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadWorkflows() {
+      try {
+        const response = await fetch('/api/workflows', { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Failed to load workflows (${response.status})`)
+        }
+
+        const data = await response.json() as { workflows?: Workflow[] }
+        if (isMounted) {
+          setWorkflows(data.workflows ?? [])
+        }
+      } catch {
+        if (isMounted) {
+          setWorkflows([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadWorkflows()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const filtered = workflows.filter(workflow => {
+    const searchTerm = search.toLowerCase()
     const matchesSearch =
-      !search ||
-      wf.name.toLowerCase().includes(search.toLowerCase()) ||
-      wf.description.toLowerCase().includes(search.toLowerCase()) ||
-      wf.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
-    const matchesStatus = statusFilter === 'all' || wf.status === statusFilter
+      !searchTerm ||
+      workflow.name.toLowerCase().includes(searchTerm) ||
+      workflow.description.toLowerCase().includes(searchTerm) ||
+      workflow.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+    const matchesStatus = statusFilter === 'all' || workflow.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
-  const handleWorkflowCreated = (wf: Workflow) => {
-    setWorkflows(prev => [wf, ...prev])
-    setShowCreate(false)
+  const handleWorkflowCreated = async (workflow: Workflow) => {
+    try {
+      const response = await fetch('/api/workflows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(workflow),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to create workflow (${response.status})`)
+      }
+
+      const createdWorkflow = await response.json() as Workflow
+      setWorkflows(prev => [createdWorkflow, ...prev])
+      setShowCreate(false)
+    } catch {
+      setWorkflows(prev => [workflow, ...prev])
+      setShowCreate(false)
+    }
   }
 
   return (
@@ -136,7 +95,6 @@ export default function WorkflowsPage() {
       breadcrumbs={[{ label: 'Workflows' }]}
     >
       <div className="relative z-10 p-6 space-y-6 max-w-[1400px] mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -145,7 +103,7 @@ export default function WorkflowsPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-100">Workflows</h1>
             <p className="text-slate-400 text-sm mt-0.5">
-              {workflows.length} total · {workflows.filter(w => w.status === 'active').length} active
+              {workflows.length} total · {workflows.filter(workflow => workflow.status === 'active').length} active
             </p>
           </div>
           <button
@@ -157,14 +115,12 @@ export default function WorkflowsPage() {
           </button>
         </motion.div>
 
-        {/* Controls */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="flex flex-col sm:flex-row gap-3"
         >
-          {/* Search */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
@@ -176,15 +132,15 @@ export default function WorkflowsPage() {
             />
           </div>
 
-          {/* Status filters */}
           <div className="flex items-center gap-1.5 p-1 rounded-lg bg-[#13131f] border border-[rgba(99,102,241,0.15)]">
-            {STATUS_FILTERS.map(f => {
-              const Icon = f.icon
-              const isActive = statusFilter === f.value
+            {STATUS_FILTERS.map(filter => {
+              const Icon = filter.icon
+              const isActive = statusFilter === filter.value
+
               return (
                 <button
-                  key={f.value}
-                  onClick={() => setStatusFilter(f.value)}
+                  key={filter.value}
+                  onClick={() => setStatusFilter(filter.value)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.4)]'
@@ -192,31 +148,38 @@ export default function WorkflowsPage() {
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
-                  {f.label}
+                  {filter.label}
                 </button>
               )
             })}
           </div>
         </motion.div>
 
-        {/* Workflow list */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
         >
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <div className="rounded-xl border border-[rgba(99,102,241,0.15)] bg-[#0f0f1a] px-4 py-6 text-sm text-slate-500">
+              Loading workflows...
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[rgba(99,102,241,0.1)] flex items-center justify-center">
                 <Search className="w-7 h-7 text-slate-500" />
               </div>
-              <p className="text-slate-400 text-sm">No workflows match your search</p>
-              <button
-                onClick={() => { setSearch(''); setStatusFilter('all') }}
-                className="mt-3 text-indigo-400 text-sm hover:text-indigo-300 transition-colors"
-              >
-                Clear filters
-              </button>
+              <p className="text-slate-400 text-sm">
+                {workflows.length === 0 ? 'No workflows exist yet' : 'No workflows match your search'}
+              </p>
+              {workflows.length > 0 && (
+                <button
+                  onClick={() => { setSearch(''); setStatusFilter('all') }}
+                  className="mt-3 text-indigo-400 text-sm hover:text-indigo-300 transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
             <WorkflowList workflows={filtered} />

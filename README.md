@@ -15,18 +15,24 @@ A production-ready AI workflow automation platform built with Next.js 15, React 
 ```bash
 cp .env.example .env.local
 npm install --legacy-peer-deps
+ollama pull qwen3:8b
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
+Make sure Ollama is running locally on `http://localhost:11434` before starting the app.
+
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | OpenAI API key (optional — mock mode if not set) |
+| `OLLAMA_BASE_URL` | Ollama OpenAI-compatible base URL (default `http://localhost:11434/v1`) |
+| `OLLAMA_MODEL` | Local Ollama model name to use for chat and planning, for example `qwen3:8b` |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `REDIS_URL` | Redis connection string |
+
+The playground executor runs code with the local `python3`, `node`, and `/bin/bash` binaries available on the host machine.
 
 ## Tech Stack
 

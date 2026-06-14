@@ -1,0 +1,86 @@
+import 'server-only'
+
+import { readdir, readFile } from 'node:fs/promises'
+import { join, relative, sep } from 'node:path'
+
+export interface DocSearchResult {
+  title: string
+  url: string
+  snippet: string
+}
+
+const INCLUDED_EXTENSIONS = new Set(['.md', '.mdx', '.txt'])
+const SKIPPED_DIRECTORIES = new Set(['node_modules', '.next', '.git', 'dist', 'build', '.turbo'])
+const MAX_RESULTS = 5
+
+function getExtension(filePath: string) {
+  const index = filePath.lastIndexOf('.')
+  return index >= 0 ? filePath.slice(index) : ''
+}
+
+async function collectDocs(directory: string, files: string[] = []): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true })
+
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (SKIPPED_DIRECTORIES.has(entry.name)) continue
+      await collectDocs(join(directory, entry.name), files)
+      continue
+    }
+
+    if (entry.isFile() && INCLUDED_EXTENSIONS.has(getExtension(entry.name))) {
+      files.push(join(directory, entry.name))
+    }
+  }
+
+  return files
+}
+
+function buildSnippet(content: string, query: string) {
+  const lowerContent = content.toLowerCase()
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const matches = terms
+    .map(term => lowerContent.indexOf(term))
+    .filter(index => index >= 0)
+
+  if (matches.length === 0) return null
+
+  const startIndex = Math.max(0, Math.min(...matches) - 120)
+  const endIndex = Math.min(content.length, Math.min(...matches) + 260)
+  return content.slice(startIndex, endIndex).replace(/\s+/g, ' ').trim()
+}
+
+function readTitle(content: string, filePath: string) {
+  const heading = content.match(/^#\s+(.+)$/m)?.[1]?.trim()
+  return heading && heading.length > 0 ? heading : filePath.split(sep).pop() ?? filePath
+}
+
+export async function searchLocalDocs(query: string, rootDir = process.cwd()): Promise<DocSearchResult[]> {
+  const normalizedQuery = query.trim()
+  if (!normalizedQuery) return []
+
+  const files = await collectDocs(rootDir)
+  const results: Array<DocSearchResult & { score: number }> = []
+
+  for (const filePath of files) {
+    const content = await readFile(filePath, 'utf8')
+    const snippet = buildSnippet(content, normalizedQuery)
+    if (!snippet) continue
+
+    const lowerContent = content.toLowerCase()
+    const terms = normalizedQuery.toLowerCase().split(/\s+/).filter(Boolean)
+    const score = terms.reduce((acc, term) => acc + (lowerContent.includes(term) ? 1 : 0), 0)
+
+    results.push({
+      title: readTitle(content, relative(rootDir, filePath)),
+      url: `/${relative(rootDir, filePath).replace(/\\/g, '/')}`,
+      snippet,
+      score,
+    })
+  }
+
+  return results
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    .slice(0, MAX_RESULTS)
+    .map(({ score: _score, ...result }) => result)
+}

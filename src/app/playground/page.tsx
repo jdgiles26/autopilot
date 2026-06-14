@@ -48,6 +48,13 @@ type Language = typeof LANGUAGE_OPTIONS[number]
 
 type PanelLayout = 'split' | 'chat' | 'code'
 
+const RUNTIME_LABELS: Record<Language, string> = {
+  python: 'Python 3.11',
+  javascript: 'Node.js v20',
+  typescript: 'TypeScript 5 / Node.js v20',
+  bash: 'Bash 5.2',
+}
+
 export default function PlaygroundPage() {
   const [code, setCode] = useState(PYTHON_STARTER)
   const [language, setLanguage] = useState<Language>('python')
@@ -63,8 +70,10 @@ export default function PlaygroundPage() {
     setIsExecuting(true)
     setTerminalLines([])
 
-    addLine('command', `${language} execute.${language === 'python' ? 'py' : 'js'}`)
-    addLine('info', `Runtime: ${language === 'python' ? 'Python 3.11' : 'Node.js v20'} · Autopilot Sandbox v1.0`)
+    const fileExtension = language === 'python' ? 'py' : language === 'typescript' ? 'ts' : language === 'bash' ? 'sh' : 'js'
+
+    addLine('command', `${language} execute.${fileExtension}`)
+    addLine('info', `Runtime: ${RUNTIME_LABELS[language]} · Local execution`)
 
     try {
       const res = await fetch('/api/execute', {
@@ -200,7 +209,9 @@ export default function PlaygroundPage() {
                 <div className="flex items-center gap-2 px-4 py-2 bg-[#0f0f1a] border-b border-[rgba(99,102,241,0.1)]">
                   <Code2 className="w-3.5 h-3.5 text-indigo-400" />
                   <span className="text-xs font-mono text-slate-400">
-                    {language === 'python' ? 'execute.py' : `execute.${language === 'typescript' ? 'ts' : language === 'bash' ? 'sh' : 'js'}`}
+                    {language === 'python'
+                      ? 'execute.py'
+                      : `execute.${language === 'typescript' ? 'ts' : language === 'bash' ? 'sh' : 'js'}`}
                   </span>
                   <div className="ml-auto flex gap-1.5">
                     <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />

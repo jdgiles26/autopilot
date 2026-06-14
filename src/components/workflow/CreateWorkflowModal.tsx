@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Sparkles, Loader2, Zap, Brain, Terminal, GitBranch, Bell, Plus } from 'lucide-react'
+import { Sparkles, Loader2, Zap, Plus, AlertCircle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Workflow } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
+import type { PlannerOutput } from '@/lib/ai/planner'
 
 interface CreateWorkflowModalProps {
   open: boolean
@@ -34,31 +35,40 @@ export function CreateWorkflowModal({ open, onClose, onCreated }: CreateWorkflow
   const [goal, setGoal] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [preview, setPreview] = useState<string[]>([])
+  const [error, setError] = useState('')
 
   const handleGenerate = async () => {
     if (!goal.trim()) return
     setIsGenerating(true)
     setPreview([])
 
-    // Simulate AI generation
-    await new Promise(r => setTimeout(r, 1500))
+    try {
+      setError('')
+      const response = await fetch('/api/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ goal }),
+      })
 
-    const steps = [
-      '⚡ HTTP Trigger — Receives workflow input',
-      '🧠 AI Processor — Analyzes with GPT-4o',
-      '🔀 Quality Gate — Validates confidence score',
-      '💻 Transform — Post-processes results',
-      '🔔 Notify — Delivers to destination',
-    ]
+      if (!response.ok) {
+        throw new Error(`Planner request failed (${response.status})`)
+      }
 
-    for (const step of steps) {
-      await new Promise(r => setTimeout(r, 200))
-      setPreview(prev => [...prev, step])
-    }
+      const plan = await response.json() as PlannerOutput & { nodes?: Array<{ label: string; description: string }> }
+      const lines = plan.nodes?.length
+        ? plan.nodes.map(node => `${node.label} — ${node.description}`)
+        : plan.steps
 
-    setIsGenerating(false)
-    if (!name) {
-      setName(goal.split(' ').slice(0, 4).join(' ') + ' Workflow')
+      setPreview(lines)
+      if (!name.trim()) {
+        setName(plan.name)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate workflow')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -166,6 +176,13 @@ export function CreateWorkflowModal({ open, onClose, onCreated }: CreateWorkflow
                 </motion.div>
               ))}
             </motion.div>
+          )}
+
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
           )}
 
           {/* Name field */}
