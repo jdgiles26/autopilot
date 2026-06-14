@@ -1,7 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import type { WorkflowNode, WorkflowEdge } from '@/types'
-import { executeCodeSnippet } from '@/lib/execution/code-runner'
+import { executeCodeSnippet, type ExecutionLanguage } from '@/lib/execution/code-runner'
 import { searchLocalDocs } from '@/lib/docs/search'
 
 export const generateWorkflowTool = tool({
@@ -14,8 +14,10 @@ export const generateWorkflowTool = tool({
       description: z.string(),
     })).describe('The steps in the workflow'),
   }),
-  execute: async ({ goal, steps }) => {
-    const nodes: WorkflowNode[] = steps.map((step, i) => ({
+  execute: async (input: any) => {
+    const params = input as { goal: string; steps: any[] }
+    const { goal, steps } = params
+    const nodes: WorkflowNode[] = steps.map((step: typeof steps[0], i: number) => ({
       id: `node-${i + 1}`,
       type: step.type as WorkflowNode['type'],
       label: step.label,
@@ -25,7 +27,7 @@ export const generateWorkflowTool = tool({
       data: {},
     }))
 
-    const edges: WorkflowEdge[] = steps.slice(0, -1).map((_, i) => ({
+    const edges: WorkflowEdge[] = steps.slice(0, -1).map((_: typeof steps[0], i: number) => ({
       id: `edge-${i + 1}`,
       source: `node-${i + 1}`,
       target: `node-${i + 2}`,
@@ -34,7 +36,7 @@ export const generateWorkflowTool = tool({
 
     return { goal, nodes, edges }
   },
-})
+} as any)
 
 export const executeCodeTool = tool({
   description: 'Execute a code snippet and return the output',
@@ -42,7 +44,9 @@ export const executeCodeTool = tool({
     code: z.string().describe('The code to execute'),
     language: z.enum(['python', 'javascript', 'typescript', 'bash']).describe('The programming language'),
   }),
-  execute: async ({ code, language }) => {
+  execute: async (input: any) => {
+    const params = input as { code: string; language: ExecutionLanguage }
+    const { code, language } = params
     const result = await executeCodeSnippet({ code, language })
     const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim()
 
@@ -52,15 +56,17 @@ export const executeCodeTool = tool({
       durationMs: result.durationMs,
     }
   },
-})
+} as any)
 
 export const searchDocsTool = tool({
   description: 'Search the Autopilot documentation',
   parameters: z.object({
     query: z.string().describe('The search query'),
   }),
-  execute: async ({ query }) => {
+  execute: async (input: any) => {
+    const params = input as { query: string }
+    const { query } = params
     const results = await searchLocalDocs(query)
     return { results }
   },
-})
+} as any)

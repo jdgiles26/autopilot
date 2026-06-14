@@ -1,24 +1,27 @@
 'use client'
 
-import React, { memo, useEffect, useRef } from 'react'
+import React, { memo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { motion } from 'framer-motion'
 import { Bot, User, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
 
-import { type UIMessage } from 'ai'
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+}
 
 interface MessageBubbleProps {
-  message: UIMessage
+  message: ChatMessage
   isStreaming?: boolean
 }
 
 export const MessageBubble = memo(function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
-  const content = typeof message.content === 'string' ? message.content : ''
+  const content = message.content
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(content)

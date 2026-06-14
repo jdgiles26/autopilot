@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
-import { useChat } from 'ai/react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Sparkles, RotateCcw, Zap } from 'lucide-react'
 import { MessageBubble } from './MessageBubble'
@@ -16,10 +15,16 @@ const SUGGESTIONS = [
   'Build a data validation script with error handling',
 ]
 
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export function ChatInterface() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
-    api: '/api/chat',
-  })
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -29,17 +34,89 @@ export function ChatInterface() {
     }
   }, [messages])
 
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    const userMessage: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content: input,
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInput('')
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to send message')
+
+      const assistantMessage: ChatMessage = {
+        id: `msg-${Date.now()}-assistant`,
+        role: 'assistant',
+        content: '',
+      }
+      setMessages(prev => [...prev, assistantMessage])
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response body')
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('0:')) {
+            const text = line.slice(2)
+            setMessages(prev => {
+              const msgs = [...prev]
+              if (msgs[msgs.length - 1].role === 'assistant') {
+                msgs[msgs.length - 1].content += text
+              }
+              return msgs
+            })
+          }
+        }
+      }
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: `msg-${Date.now()}-error`,
+        role: 'assistant',
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      if (input.trim()) {
-        handleSubmit(e as unknown as React.FormEvent)
-      }
+      handleSendMessage(e as unknown as React.FormEvent)
     }
   }
 
   const handleSuggestion = (text: string) => {
-    handleInputChange({ target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>)
+    setInput(text)
     inputRef.current?.focus()
   }
 
@@ -143,12 +220,12 @@ export function ChatInterface() {
 
       {/* Input */}
       <div className="p-4 border-t border-[rgba(99,102,241,0.15)]">
-        <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+        <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
           <div className="flex-1 relative">
             <textarea
               ref={inputRef}
               value={input}
-              onChange={handleInputChange}
+              onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything... (Shift+Enter for new line)"
               rows={1}
