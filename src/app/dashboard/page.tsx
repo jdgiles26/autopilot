@@ -27,6 +27,11 @@ export default function DashboardPage() {
   useEffect(() => {
     let isMounted = true
 
+    /**
+     * Fetches recent workflows from the API and updates the workflows state.
+     *
+     * On error, sets workflows to an empty array. Completes by setting isLoading to false.
+     */
     async function loadWorkflows() {
       try {
         const response = await fetch('/api/workflows', { cache: 'no-store' })

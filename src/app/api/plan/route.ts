@@ -3,6 +3,11 @@ import { generateObject } from 'ai'
 import { buildPlannerPrompt, plannerOutputSchema, type PlannerInput } from '@/lib/ai/planner'
 import { getOllamaModel } from '@/lib/ai/provider'
 
+/**
+ * Generates a workflow plan and returns it enriched with visual graph nodes and edges.
+ *
+ * @returns A JSON response containing the generated plan with nodes and edges for visualization.
+ */
 export async function POST(req: Request) {
   const body = await req.json() as PlannerInput
 

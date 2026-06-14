@@ -21,6 +21,11 @@ const STATUS_COLOR: Record<string, string> = {
   pending: '#94a3b8',
 }
 
+/**
+ * Renders a workflow detail page showing metadata, statistics, and an interactive canvas.
+ *
+ * Displays the workflow's name, status, tags, and performance metrics. Includes action buttons to run, pause, or configure the workflow. Shows appropriate loading and error states.
+ */
 export default function WorkflowDetailPage() {
   const params = useParams()
   const id = params.id as string

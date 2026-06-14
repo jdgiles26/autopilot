@@ -16,6 +16,13 @@ const SUGGESTIONS = [
   'Build a data validation script with error handling',
 ]
 
+/**
+ * Renders a chat interface for interacting with an AI assistant.
+ *
+ * Displays a message list with auto-scrolling, suggested prompts for empty conversations,
+ * a loading indicator while waiting for responses, and a text input with keyboard shortcuts
+ * (Enter to send, Shift+Enter for new line).
+ */
 export function ChatInterface() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
     api: '/api/chat',

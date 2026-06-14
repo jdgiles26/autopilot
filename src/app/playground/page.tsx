@@ -55,6 +55,12 @@ const RUNTIME_LABELS: Record<Language, string> = {
   bash: 'Bash 5.2',
 }
 
+/**
+ * Renders an interactive code playground with language selection, an editor, and execution terminal.
+ *
+ * Manages editing state, selected language, terminal output, and layout options (split, chat-only, or code-only).
+ * Supports executing code via API and streaming results to the terminal display.
+ */
 export default function PlaygroundPage() {
   const [code, setCode] = useState(PYTHON_STARTER)
   const [language, setLanguage] = useState<Language>('python')
